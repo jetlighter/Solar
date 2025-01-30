@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>2D Solar System</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        Click and drag to pan | Mouse wheel to zoom
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Camera controls
+        let scale = 1;
+        let offset = { x: canvas.width/2, y: canvas.height/2 };
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+
+        // Solar system data (scaled down for visualization)
+        const sun = {
+            x: 0,
+            y: 0,
+            radius: 20,
+            color: 'yellow'
+        };
+
+        const planets = [
+            { name: 'Mercury', distance: 60,  radius: 5,  color: 'gray',    speed: 0.02, angle: 0 },
+            { name: 'Venus',   distance: 90,  radius: 8,  color: 'orange',  speed: 0.015, angle: 0 },
+            { name: 'Earth',   distance: 130, radius: 9,  color: 'blue',    speed: 0.01, angle: 0 },
+            { name: 'Mars',    distance: 170, radius: 7,  color: 'red',     speed: 0.008, angle: 0 },
+            { name: 'Jupiter', distance: 230, radius: 15, color: 'brown',   speed: 0.005, angle: 0 },
+        ];
+
+        // Game loop
+        function gameLoop() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Save current context state
+            ctx.save();
+            
+            // Apply camera transformations
+            ctx.translate(offset.x, offset.y);
+            ctx.scale(scale, scale);
+
+            // Draw sun
+            ctx.beginPath();
+            ctx.arc(sun.x, sun.y, sun.radius, 0, Math.PI * 2);
+            ctx.fillStyle = sun.color;
+            ctx.fill();
+
+            // Draw planets
+            planets.forEach(planet => {
+                // Update planet position
+                planet.angle += planet.speed;
+                
+                const x = Math.cos(planet.angle) * planet.distance;
+                const y = Math.sin(planet.angle) * planet.distance;
+
+                // Draw orbit path
+                ctx.beginPath();
+                ctx.arc(sun.x, sun.y, planet.distance, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.stroke();
+
+                // Draw planet
+                ctx.beginPath();
+                ctx.arc(x, y, planet.radius, 0, Math.PI * 2);
+                ctx.fillStyle = planet.color;
+                ctx.fill();
+            });
+
+            // Restore context state
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners for controls
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMousePos = {
+                x: e.clientX,
+                y: e.clientY
+            };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                offset.x += (e.clientX - lastMousePos.x);
+                offset.y += (e.clientY - lastMousePos.y);
+                lastMousePos = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const oldScale = scale;
+            
+            if (e.deltaY < 0) {
+                scale *= 1 + zoomIntensity;
+            } else {
+                scale /= 1 + zoomIntensity;
+            }
+            
+            // Adjust offset to zoom around mouse position
+            const mouseX = e.clientX - offset.x;
+            const mouseY = e.clientY - offset.y;
+            
+            offset.x -= mouseX * (scale - oldScale);
+            offset.y -= mouseY * (scale - oldScale);
+        }, { passive: false });
+
+        // Start the game loop
+        gameLoop();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
